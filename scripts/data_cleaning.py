@@ -49,7 +49,7 @@ def get_nan_cols(df):
     nans = [print(f"{colname}:{number}") for colname, number in zip(df.columns.to_list(), list(df.isnull().sum())) if number != 0]
 
 
-def convert_dates(df):
+def convert_to_datetime(df):
     """Convert the date columns of a data frame to actual datetime objects.
 
     Args:
@@ -59,20 +59,19 @@ def convert_dates(df):
         pandas.core.frame.DataFrame: data frame with the converted columns.
     """
     # Convert the time columns to datetime types.
-    df['created_at'] = pd.to_datetime(df['created_at'],unit='s')
-    df['state_changed_at'] = pd.to_datetime(df['state_changed_at'],unit='s')
-    df['deadline'] = pd.to_datetime(df['deadline'],unit='s')
+    for col in ['created_at', 'state_changed_at', 'deadline']:
+        df[col] = pd.to_datetime(df[col],unit='s')
     return df
 
 
-def calculate_time_periodes(df):
-    """Calculate the time periodes (in days) until the project status changed and the deadline is reached.
+def calculate_time_periods(df):
+    """Calculate the time periods (in days) until the project status changed and the deadline is reached.
 
     Args:
-        df (pandas.core.frame.DataFrame): data frame with the datetime columns to calculate the time periodes in days.
+        df (pandas.core.frame.DataFrame): data frame with the datetime columns to calculate the time periods.
 
     Returns:
-        pandas.core.frame.DataFrame: data frame with the calculated time periodes in days.
+        pandas.core.frame.DataFrame: data frame with the calculated time periods.
     """
     # Calculate the time spans.
     df['days_till_change'] = df['state_changed_at'].dt.date-df['created_at'].dt.date
@@ -80,4 +79,21 @@ def calculate_time_periodes(df):
     # Convert the days to ints.
     df['days_till_change'] = df['days_till_change'].dt.days
     df['days_total'] = df['days_total'].dt.days
+    return df
+
+
+def get_year_month_day(df):
+    """Add columns for the year, month and day of the datetime cols. 
+
+    Args:
+        df (pandas.core.frame.DataFrame): data frame with the datetime columns.
+
+    Returns:
+        pandas.core.frame.DataFrame: data frame with the added columns.
+    """
+    for col in ['created_at', 'state_changed_at', 'deadline']:
+        df[str(col + '_year')] = df[col].dt.year
+        df[str(col + '_month')] = df[col].dt.month
+        df[str(col + '_day')] = df[col].dt.day
+    df.drop(['created_at', 'state_changed_at', 'deadline'], axis=1, inplace=True)
     return df
