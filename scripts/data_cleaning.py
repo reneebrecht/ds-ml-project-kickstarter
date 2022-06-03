@@ -152,6 +152,22 @@ def entangle_column(df, columns):
     return df
 
 
+def get_char_len(df, columns=['project_name', 'creator_name', 'blurb']):
+    """_summary_
+
+    Args:
+        df (_type_): _description_
+        columns (list, optional): _description_. Defaults to ['project_name', 'creator_name', 'blurb'].
+
+    Returns:
+        _type_: _description_
+    """
+    for col in columns:
+        df[str(col + '_len')] = df[col].str.len()
+        df.drop(col, axis=1, inplace=True)
+    return df
+
+
 def one_hot_encode(df, not_to_enc_cols=[
         'state',
         'backers_count', 
@@ -163,6 +179,16 @@ def one_hot_encode(df, not_to_enc_cols=[
         'project_name_len',
         'creator_name_len'
         ]):
+    """One-hot-encodes the categorical columns of the given data frame, excluding the given columns.
+
+    Args:
+        df (pandas.core.frame.DataFrame): data frame with the categorical columns to be encoded. 
+        not_to_enc_cols (list(str), optional): list of the columns to exclude from the encoding.
+            Defaults to [ 'state', 'backers_count', 'goal', 'usd_pledged', 'days_prelaunch', 'days_launched_till_changed', 'days_total', 'project_name_len', 'creator_name_len' ].
+
+    Returns:
+        pandas.core.frame.DataFrame: data frame with the encoded columns.
+    """
     # Get all column names
     col_names = df.columns.to_list()
     # Set the cols which should not be encoded (numerics and the target)
@@ -174,11 +200,18 @@ def one_hot_encode(df, not_to_enc_cols=[
 
 
 def clean_data(df):
+    """The whole data cleaning process.
+
+    Args:
+        df (pandas.core.frame.DataFrame): data frame to be cleaned.
+
+    Returns:
+        pandas.core.frame.DataFrame: Cleaned data frame
+    """
     # Drop all columns with more than 50% of the observations missing
     df = df[[column for column in df if df[column].count() / len(df) >= 0.5]]
     # Drop the listed columns
     df.drop([
-        'blurb', 
         'converted_pledged_amount',
         'currency_symbol', 
         'currency_trailing_code', 
@@ -215,6 +248,9 @@ def clean_data(df):
     df.drop('current_currency', axis=1, inplace=True)
     df.drop(['category_id', 'location_name'], axis=1, inplace=True)
     # Calculate the length of the names columns
+    df= get_char_len(df)
+
+
     df['project_name_len'] = df['name'].str.len()
     df['creator_name_len'] = df['creator_name'].str.len()
     # Drop the name columns
