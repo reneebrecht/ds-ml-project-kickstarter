@@ -76,10 +76,12 @@ def calculate_time_periods(df):
         pandas.core.frame.DataFrame: data frame with the calculated time periods.
     """
     # Calculate the time spans.
-    df['days_till_change'] = df['state_changed_at'].dt.date-df['created_at'].dt.date
+    df['days_launched_till_changed'] = df['state_changed_at'].dt.date-df['launched_at'].dt.date
+    df['days_prelaunch'] = df['launched_at'].dt.date-df['created_at'].dt.date
     df['days_total'] = df['deadline'].dt.date-df['created_at'].dt.date
     # Convert the days to ints.
-    df['days_till_change'] = df['days_till_change'].dt.days
+    df['days_launched_till_changed'] = df['days_launched_till_changed'].dt.days
+    df['days_prelaunch'] = df['days_prelaunch'].dt.days
     df['days_total'] = df['days_total'].dt.days
     return df
 
@@ -100,6 +102,7 @@ def get_year_month_day(df, columns):
         df[str(col + '_year')] = df[col].dt.year
         df[str(col + '_month')] = df[col].dt.month
         df[str(col + '_day')] = df[col].dt.day
+        df[str(col + '_weekday')] = df[col].dt.weekday
     # Drop the old column
     df.drop(columns, axis=1, inplace=True)
     return df
