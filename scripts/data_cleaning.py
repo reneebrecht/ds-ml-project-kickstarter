@@ -136,7 +136,7 @@ def entangle_column(df, columns):
                 if len(sub_cat) != 1:
                     sub_cats.append(sub_cat[1])
                 else:
-                    sub_cats.append(np.NAN)
+                    sub_cats.append(sub_cat[0])
             else:
                 names.append(element[1].replace('name:', ''))
         # Add the wanted information as new columns
@@ -146,4 +146,39 @@ def entangle_column(df, columns):
             df[str(col + '_sub')] = sub_cats
         # Drop the old column
         df.drop(col, axis=1, inplace=True)
+    return df
+
+def clean_data(df):
+    # Drop all columns with more than 50% of the observations missing
+    df = df[[column for column in df if df[column].count() / len(df) >= 0.5]]
+    # Drop the listed columns
+    df.drop([
+        'blurb', 
+        'converted_pledged_amount',
+        'currency_symbol', 
+        'currency_trailing_code', 
+        'fx_rate',
+        'photo',
+        'profile',
+        'slug',
+        'source_url', 
+        'static_usd_rate',
+        'urls'
+        ], axis=1, inplace=True)
+    # Drops the last few NaN values
+    df.dropna(axis=0, inplace=True)
+    # Rename the currency column
+    df.rename(columns={
+        'currency':'original_currency',
+        'id':'project_id'}, inplace=True)
+    # Convert the time columns to datetime types
+    df = convert_to_datetime(df, ['created_at', 'state_changed_at', 'deadline'])
+    # Calculate the time periods
+    df = calculate_time_periods(df)
+    # Get the years, months and days as separate columns
+    df = get_year_month_day(df, ['created_at', 'state_changed_at', 'deadline'])
+    # Entangles the category, creator and location column
+    df = entangle_column(df, ['category', 'creator', 'location'])
+    # Drop the current_currency column
+    df.drop('current_currency', axis=1, inplace=True)
     return df
