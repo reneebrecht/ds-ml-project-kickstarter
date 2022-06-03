@@ -1,3 +1,4 @@
+from re import sub
 import pandas as pd
 import numpy as np
 from pathlib import Path 
@@ -123,15 +124,26 @@ def entangle_column(df, columns):
         # Create empty lists to catch the wanted information
         names = []
         ids = []
+        sub_cats = []
         # Iterate through all information and catch the wanted
         for element in df[col].str.split(','):
-            names.append(element[1].replace('name:', ''))
+            # For the category we need different information
             if col == 'category':
                 ids.append(element[0].replace('id:', ''))
+                sub_cat = element[2].replace('slug:', '').split('/')
+                names.append(sub_cat[0])
+                # Some projects do not have a subcategory
+                if len(sub_cat) != 1:
+                    sub_cats.append(sub_cat[1])
+                else:
+                    sub_cats.append(np.NAN)
+            else:
+                names.append(element[1].replace('name:', ''))
         # Add the wanted information as new columns
         df[str(col + '_name')] = names
         if col == 'category':
             df[str(col + '_id')] = ids
+            df[str(col + '_sub')] = sub_cats
         # Drop the old column
         df.drop(col, axis=1, inplace=True)
     return df
