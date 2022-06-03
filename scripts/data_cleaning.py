@@ -168,7 +168,10 @@ def get_char_len(df, columns=[
         pandas.core.frame.DataFrame: data frame with the length columns
     """
     for col in columns:
-        df[str(col + '_len')] = df[col].str.len()
+        if col == 'creator_name':
+            df[str(col + '_len')] = df[col].str.len()
+        else:
+            df[str(col + '_len')] = df[col].str.split().str.len()
         df.drop(col, axis=1, inplace=True)
     return df
 
@@ -229,6 +232,8 @@ def clean_data(df):
     Returns:
         pandas.core.frame.DataFrame: Cleaned data frame
     """
+    # Remove the duplicates
+    df.drop_duplicates(subset='id', inplace=True)
     # Drop all columns with more than 50% of the observations missing
     df = df[[column for column in df if df[column].count() / len(df) >= 0.5]]
     # Drop the listed columns
