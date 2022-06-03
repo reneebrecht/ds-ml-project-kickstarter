@@ -151,6 +151,28 @@ def entangle_column(df, columns):
         df.drop(col, axis=1, inplace=True)
     return df
 
+
+def one_hot_encode(df, not_to_enc_cols=[
+        'state',
+        'backers_count', 
+        'goal', 
+        'usd_pledged',
+        'days_prelaunch',
+        'days_launched_till_changed',
+        'days_total',
+        'project_name_len',
+        'creator_name_len'
+        ]):
+    # Get all column names
+    col_names = df.columns.to_list()
+    # Set the cols which should not be encoded (numerics and the target)
+    not_enc_cols = not_to_enc_cols.append('state')
+    # Create a list of the cols which need to be encoded
+    cols_to_encode = [col for col in col_names if col not in not_to_enc_cols]
+    df = pd.get_dummies(df, columns=cols_to_encode, prefix=cols_to_encode)
+    return df
+
+
 def clean_data(df):
     # Drop all columns with more than 50% of the observations missing
     df = df[[column for column in df if df[column].count() / len(df) >= 0.5]]
@@ -161,6 +183,8 @@ def clean_data(df):
         'currency_symbol', 
         'currency_trailing_code', 
         'fx_rate',
+        'id',
+        'pledged',
         'photo',
         'profile',
         'slug',
@@ -171,17 +195,32 @@ def clean_data(df):
     # Drops the last few NaN values
     df.dropna(axis=0, inplace=True)
     # Rename the currency column
+    df.rename(columns={'currency':'original_currency'}, inplace=True)
+    # Drops the last few NaN values
+    df.dropna(axis=0, inplace=True)
+    # Rename the currency column
     df.rename(columns={
         'currency':'original_currency',
         'id':'project_id'}, inplace=True)
     # Convert the time columns to datetime types
-    df = convert_to_datetime(df, ['created_at', 'state_changed_at', 'deadline'])
+    df = convert_to_datetime(df, ['created_at', 'state_changed_at', 'deadline', 'launched_at'])
     # Calculate the time periods
     df = calculate_time_periods(df)
     # Get the years, months and days as separate columns
-    df = get_year_month_day(df, ['created_at', 'state_changed_at', 'deadline'])
+    df = get_year_month_day(df, ['created_at', 'state_changed_at', 'deadline', 'launched_at'])
     # Entangles the category, creator and location column
     df = entangle_column(df, ['category', 'creator', 'location'])
+    df.rename(columns={'category_name':'category'}, inplace=True)
     # Drop the current_currency column
     df.drop('current_currency', axis=1, inplace=True)
+    df.drop(['category_id', 'location_name'], axis=1, inplace=True)
+    # Calculate the length of the names columns
+    df['project_name_len'] = df['name'].str.len()
+    df['creator_name_len'] = df['creator_name'].str.len()
+    # Drop the name columns
+    df.drop(['name', 'creator_name'], axis=1, inplace=True)
+    # One-hot-encode the categorical features.
+    df = one_hot_encode(df)
+    # Get rid of the live state entries
+    df= df[df['state'] != 'live']
     return df
