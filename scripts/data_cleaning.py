@@ -115,7 +115,7 @@ def entangle_column(df, columns):
 
     Args:
         df (pandas.core.frame.DataFrame): data frame that contains the columns to be entangled.
-        columns (list(str)): columns to be entangeled.
+        columns (list(str)): columns to be entangled.
 
     Returns:
         pandas.core.frame.DataFrame: data frame with the new entangled columns.
@@ -152,15 +152,20 @@ def entangle_column(df, columns):
     return df
 
 
-def get_char_len(df, columns=['project_name', 'creator_name', 'blurb']):
-    """_summary_
+def get_char_len(df, columns=[
+    'project_name', 
+    'creator_name', 
+    'blurb'
+    ]):
+    """Gives back the length of the strings in columns.
 
     Args:
-        df (_type_): _description_
-        columns (list, optional): _description_. Defaults to ['project_name', 'creator_name', 'blurb'].
+        df (pandas.core.frame.DataFrame): data frame with the columns containing the strings.
+        columns (list, optional): list with the columns for which the string lengths should be calculated.
+            Defaults to ['project_name', 'creator_name', 'blurb'].
 
     Returns:
-        _type_: _description_
+        pandas.core.frame.DataFrame: data frame with the length columns
     """
     for col in columns:
         df[str(col + '_len')] = df[col].str.len()
@@ -170,20 +175,19 @@ def get_char_len(df, columns=['project_name', 'creator_name', 'blurb']):
 
 def one_hot_encode(df, not_to_enc_cols=[
         'state',
-        'backers_count', 
         'goal', 
-        'usd_pledged',
         'days_prelaunch',
         'days_launched_till_changed',
         'days_total',
         'project_name_len',
-        'creator_name_len'
+        'creator_name_len',
+        'blurb_len'
         ]):
     """One-hot-encodes the categorical columns of the given data frame, excluding the given columns.
 
     Args:
         df (pandas.core.frame.DataFrame): data frame with the categorical columns to be encoded. 
-        not_to_enc_cols (list(str), optional): list of the columns to exclude from the encoding.
+        not_to_enc_cols (list, optional): list of the columns to exclude from the encoding.
             Defaults to [ 'state', 'backers_count', 'goal', 'usd_pledged', 'days_prelaunch', 'days_launched_till_changed', 'days_total', 'project_name_len', 'creator_name_len' ].
 
     Returns:
@@ -196,6 +200,23 @@ def one_hot_encode(df, not_to_enc_cols=[
     # Create a list of the cols which need to be encoded
     cols_to_encode = [col for col in col_names if col not in not_to_enc_cols]
     df = pd.get_dummies(df, columns=cols_to_encode, prefix=cols_to_encode)
+    return df
+
+
+def clean_target(df):
+    """Cleans the target variable by removing/transforming unnecessary labels.
+
+    Args:
+        df (pandas.core.frame.DataFrame): data frame containing the target variable.
+
+    Returns:
+        pandas.core.frame.DataFrame: data frame with the cleaned target variable.
+    """
+    # Get rid of the live state entries
+    df = df[df['state'] != 'live']
+    # Replaces the labels canceled and suspended with failed in the target variable
+    for label in ['failed', 'canceled', 'suspended']:
+        df['state'] = df['state'].str.replace(label, 'failed')
     return df
 
 
@@ -212,6 +233,7 @@ def clean_data(df):
     df = df[[column for column in df if df[column].count() / len(df) >= 0.5]]
     # Drop the listed columns
     df.drop([
+        'backers_count',
         'converted_pledged_amount',
         'currency_symbol', 
         'currency_trailing_code', 
@@ -222,19 +244,18 @@ def clean_data(df):
         'profile',
         'slug',
         'source_url', 
+        'spotlight',
+        'staff_pick',
         'static_usd_rate',
-        'urls'
+        'urls',
+        'usd_pledged'
         ], axis=1, inplace=True)
-    # Drops the last few NaN values
-    df.dropna(axis=0, inplace=True)
-    # Rename the currency column
-    df.rename(columns={'currency':'original_currency'}, inplace=True)
     # Drops the last few NaN values
     df.dropna(axis=0, inplace=True)
     # Rename the currency column
     df.rename(columns={
         'currency':'original_currency',
-        'id':'project_id'}, inplace=True)
+        'name':'project_name'}, inplace=True)
     # Convert the time columns to datetime types
     df = convert_to_datetime(df, ['created_at', 'state_changed_at', 'deadline', 'launched_at'])
     # Calculate the time periods
@@ -246,17 +267,12 @@ def clean_data(df):
     df.rename(columns={'category_name':'category'}, inplace=True)
     # Drop the current_currency column
     df.drop('current_currency', axis=1, inplace=True)
+    # Drop category_id and location_name
     df.drop(['category_id', 'location_name'], axis=1, inplace=True)
-    # Calculate the length of the names columns
-    df= get_char_len(df)
-
-
-    df['project_name_len'] = df['name'].str.len()
-    df['creator_name_len'] = df['creator_name'].str.len()
-    # Drop the name columns
-    df.drop(['name', 'creator_name'], axis=1, inplace=True)
+    # Calculate the character length of the columns
+    get_char_len(df, columns=['project_name', 'creator_name', 'blurb'])
     # One-hot-encode the categorical features.
     df = one_hot_encode(df)
-    # Get rid of the live state entries
-    df= df[df['state'] != 'live']
+    # Clean the target variable
+    df = clean_target(df)
     return df
