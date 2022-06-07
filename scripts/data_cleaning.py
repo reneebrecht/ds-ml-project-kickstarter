@@ -273,7 +273,7 @@ def clean_data(df):
     # Drop the current_currency column
     df.drop('current_currency', axis=1, inplace=True)
     # Drop category_id and location_name
-    df.drop(['category_id', 'location_name'], axis=1, inplace=True)
+    df.drop(['category_id', 'location_name', 'days_launched_till_changed'], axis=1, inplace=True)
     # Calculate the character length of the columns
     get_char_len(df, columns=['project_name', 'creator_name', 'blurb'])
     # One-hot-encode the categorical features.
