@@ -266,14 +266,16 @@ def clean_data(df):
     # Calculate the time periods
     df = calculate_time_periods(df)
     # Get the years, months and days as separate columns
-    df = get_year_month_day(df, ['created_at', 'state_changed_at', 'deadline', 'launched_at'])
+    df = get_year_month_day(df, ['created_at', 'deadline', 'launched_at'])
+    # Drop these columns since this is info we do not have at project start 
+    df.drop(['days_launched_till_changed', 'state_changed_at'], axis=1, inplace=True)
     # Entangles the category, creator and location column
     df = entangle_column(df, ['category', 'creator', 'location'])
     df.rename(columns={'category_name':'category'}, inplace=True)
     # Drop the current_currency column
     df.drop('current_currency', axis=1, inplace=True)
     # Drop category_id and location_name
-    df.drop(['category_id', 'location_name', 'days_launched_till_changed'], axis=1, inplace=True)
+    df.drop(['category_id', 'location_name'], axis=1, inplace=True)
     # Calculate the character length of the columns
     get_char_len(df, columns=['project_name', 'creator_name', 'blurb'])
     # One-hot-encode the categorical features.
